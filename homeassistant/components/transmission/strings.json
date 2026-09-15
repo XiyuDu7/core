@@ -68,7 +68,7 @@
         "name": "Available disk space"
       },
       "download_speed": {
-        "name": "Download speed"
+        "name": "Active Download speed"
       },
       "paused_torrents": {
         "name": "Paused torrents",
