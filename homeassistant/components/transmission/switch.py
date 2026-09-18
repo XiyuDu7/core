@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass
+import logging
 from typing import Any, override
 
 from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
@@ -11,6 +12,8 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .coordinator import TransmissionConfigEntry, TransmissionDataUpdateCoordinator
 from .entity import TransmissionEntity
+
+_LOGGER = logging.getLogger(__name__)
 
 PARALLEL_UPDATES = 0
 AFTER_WRITE_SLEEP = 2
@@ -71,6 +74,9 @@ class TransmissionSwitch(TransmissionEntity, SwitchEntity):
     @override
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the device on."""
+        if self.entity_description.key == "turtle_mode":
+            _LOGGER.info("IA1: Turtle mode ON requested from Home Assistant")
+
         await self.hass.async_add_executor_job(
             self.entity_description.on_func, self.coordinator
         )
