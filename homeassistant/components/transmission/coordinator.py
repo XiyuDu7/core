@@ -30,6 +30,8 @@ from .const import (
     EVENT_TYPE_DOWNLOADED,
     EVENT_TYPE_REMOVED,
     EVENT_TYPE_STARTED,
+    STATE_DOWNLOADING,
+    STATE_SEEDING,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -167,10 +169,10 @@ class TransmissionDataUpdateCoordinator(DataUpdateCoordinator[SessionStats]):
         """Initialize torrent lists."""
         self.torrents = self.api.get_torrents()
         self._completed_torrents = [
-            torrent for torrent in self.torrents if torrent.status == "seeding"
+            torrent for torrent in self.torrents if torrent.status == STATE_SEEDING
         ]
         self._started_torrents = [
-            torrent for torrent in self.torrents if torrent.status == "downloading"
+            torrent for torrent in self.torrents if torrent.status == STATE_DOWNLOADING
         ]
 
     def check_completed_torrent(self) -> None:
@@ -178,7 +180,7 @@ class TransmissionDataUpdateCoordinator(DataUpdateCoordinator[SessionStats]):
         old_completed_torrents = {torrent.id for torrent in self._completed_torrents}
 
         current_completed_torrents = [
-            torrent for torrent in self.torrents if torrent.status == "seeding"
+            torrent for torrent in self.torrents if torrent.status == STATE_SEEDING
         ]
 
         for torrent in current_completed_torrents:
@@ -196,7 +198,7 @@ class TransmissionDataUpdateCoordinator(DataUpdateCoordinator[SessionStats]):
         old_started_torrents = {torrent.id for torrent in self._started_torrents}
 
         current_started_torrents = [
-            torrent for torrent in self.torrents if torrent.status == "downloading"
+            torrent for torrent in self.torrents if torrent.status == STATE_DOWNLOADING
         ]
 
         for torrent in current_started_torrents:
