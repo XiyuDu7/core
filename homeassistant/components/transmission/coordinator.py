@@ -105,6 +105,34 @@ class TransmissionDataUpdateCoordinator(DataUpdateCoordinator[SessionStats]):
         for listener in list(self._event_listeners.values()):
             listener(event)
 
+    @callback
+    def _async_publish_torrent_event(
+        self,
+        torrent: transmission_rpc.Torrent,
+        bus_event_type: str,
+        event_type: str,
+    ) -> None:
+        """Publish a torrent event and notify internal listeners."""
+        # Once event triggers are out of labs we can remove the bus event
+        self.hass.bus.async_fire(
+            bus_event_type,
+            {
+                ATTR_NAME: torrent.name,
+                ATTR_ID: torrent.id,
+                ATTR_DOWNLOAD_PATH: torrent.download_dir,
+                ATTR_LABELS: torrent.labels,
+            },
+        )
+
+        event = TransmissionEventData(
+            event_type=event_type,
+            name=torrent.name,
+            id=torrent.id,
+            download_path=torrent.download_dir or "",
+            labels=torrent.labels,
+        )
+        self._async_notify_event_listeners(event)
+
     @override
     async def _async_update_data(self) -> SessionStats:
         """Update transmission data."""
@@ -155,24 +183,11 @@ class TransmissionDataUpdateCoordinator(DataUpdateCoordinator[SessionStats]):
 
         for torrent in current_completed_torrents:
             if torrent.id not in old_completed_torrents:
-                # Once event triggers are out of labs we can remove the bus event
-                self.hass.bus.async_fire(
+                self._async_publish_torrent_event(
+                    torrent,
                     EVENT_DOWNLOADED_TORRENT,
-                    {
-                        ATTR_NAME: torrent.name,
-                        ATTR_ID: torrent.id,
-                        ATTR_DOWNLOAD_PATH: torrent.download_dir,
-                        ATTR_LABELS: torrent.labels,
-                    },
+                    EVENT_TYPE_DOWNLOADED,
                 )
-                event = TransmissionEventData(
-                    event_type=EVENT_TYPE_DOWNLOADED,
-                    name=torrent.name,
-                    id=torrent.id,
-                    download_path=torrent.download_dir or "",
-                    labels=torrent.labels,
-                )
-                self._async_notify_event_listeners(event)
 
         self._completed_torrents = current_completed_torrents
 
@@ -186,24 +201,11 @@ class TransmissionDataUpdateCoordinator(DataUpdateCoordinator[SessionStats]):
 
         for torrent in current_started_torrents:
             if torrent.id not in old_started_torrents:
-                # Once event triggers are out of labs we can remove the bus event
-                self.hass.bus.async_fire(
+                self._async_publish_torrent_event(
+                    torrent,
                     EVENT_STARTED_TORRENT,
-                    {
-                        ATTR_NAME: torrent.name,
-                        ATTR_ID: torrent.id,
-                        ATTR_DOWNLOAD_PATH: torrent.download_dir,
-                        ATTR_LABELS: torrent.labels,
-                    },
+                    EVENT_TYPE_STARTED,
                 )
-                event = TransmissionEventData(
-                    event_type=EVENT_TYPE_STARTED,
-                    name=torrent.name,
-                    id=torrent.id,
-                    download_path=torrent.download_dir or "",
-                    labels=torrent.labels,
-                )
-                self._async_notify_event_listeners(event)
 
         self._started_torrents = current_started_torrents
 
@@ -213,24 +215,11 @@ class TransmissionDataUpdateCoordinator(DataUpdateCoordinator[SessionStats]):
 
         for torrent in self._all_torrents:
             if torrent.id not in current_torrents:
-                # Once event triggers are out of labs we can remove the bus event
-                self.hass.bus.async_fire(
+                self._async_publish_torrent_event(
+                    torrent,
                     EVENT_REMOVED_TORRENT,
-                    {
-                        ATTR_NAME: torrent.name,
-                        ATTR_ID: torrent.id,
-                        ATTR_DOWNLOAD_PATH: torrent.download_dir,
-                        ATTR_LABELS: torrent.labels,
-                    },
+                    EVENT_TYPE_REMOVED,
                 )
-                event = TransmissionEventData(
-                    event_type=EVENT_TYPE_REMOVED,
-                    name=torrent.name,
-                    id=torrent.id,
-                    download_path=torrent.download_dir or "",
-                    labels=torrent.labels,
-                )
-                self._async_notify_event_listeners(event)
 
         self._all_torrents = self.torrents.copy()
 
