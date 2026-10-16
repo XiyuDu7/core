@@ -6,11 +6,11 @@ import logging
 from typing import Any
 
 import probatio
-from transmission_rpc import Torrent
+from transmission_rpc import Torrent, TransmissionError
 
 from homeassistant.const import CONF_ID
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse, callback
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv, selector, service
 
 from .const import (
@@ -108,6 +108,17 @@ def _get_coordinator_from_service_data(
     return entry.runtime_data
 
 
+def _service_error(err: TransmissionError) -> HomeAssistantError:
+    """Return a translated error for a failed Transmission API call."""
+    # TransmissionError is the base of the library's connect/auth/timeout
+    # errors, so this hides raw third-party exceptions from the user.
+    return HomeAssistantError(
+        translation_domain=DOMAIN,
+        translation_key="service_error",
+        translation_placeholders={"error": str(err)},
+    )
+
+
 async def _async_add_torrent(call: ServiceCall) -> None:
     """Add new torrent to download."""
     coordinator = _get_coordinator_from_service_data(call)
@@ -126,14 +137,17 @@ async def _async_add_torrent(call: ServiceCall) -> None:
             translation_key="could_not_add_torrent",
         )
 
-    await call.hass.async_add_executor_job(
-        partial(
-            coordinator.api.add_torrent,
-            torrent,
-            labels=labels,
-            download_dir=download_path,
+    try:
+        await call.hass.async_add_executor_job(
+            partial(
+                coordinator.api.add_torrent,
+                torrent,
+                labels=labels,
+                download_dir=download_path,
+            )
         )
-    )
+    except TransmissionError as err:
+        raise _service_error(err) from err
     await coordinator.async_request_refresh()
 
 
@@ -147,7 +161,10 @@ async def _async_get_torrents(call: ServiceCall) -> dict[str, Any] | None:
         all_torrents = coordinator.api.get_torrents()
         return filter_torrents(all_torrents, FILTER_MODES[torrent_filter])
 
-    torrents = await call.hass.async_add_executor_job(get_filtered_torrents)
+    try:
+        torrents = await call.hass.async_add_executor_job(get_filtered_torrents)
+    except TransmissionError as err:
+        raise _service_error(err) from err
 
     info = format_torrents(torrents)
     return {
@@ -159,7 +176,12 @@ async def _async_start_torrent(call: ServiceCall) -> None:
     """Start torrent."""
     coordinator = _get_coordinator_from_service_data(call)
     torrent_id = call.data[CONF_ID]
-    await call.hass.async_add_executor_job(coordinator.api.start_torrent, torrent_id)
+    try:
+        await call.hass.async_add_executor_job(
+            coordinator.api.start_torrent, torrent_id
+        )
+    except TransmissionError as err:
+        raise _service_error(err) from err
     await coordinator.async_request_refresh()
 
 
@@ -167,7 +189,10 @@ async def _async_stop_torrent(call: ServiceCall) -> None:
     """Stop torrent."""
     coordinator = _get_coordinator_from_service_data(call)
     torrent_id = call.data[CONF_ID]
-    await call.hass.async_add_executor_job(coordinator.api.stop_torrent, torrent_id)
+    try:
+        await call.hass.async_add_executor_job(coordinator.api.stop_torrent, torrent_id)
+    except TransmissionError as err:
+        raise _service_error(err) from err
     await coordinator.async_request_refresh()
 
 
@@ -176,9 +201,12 @@ async def _async_remove_torrent(call: ServiceCall) -> None:
     coordinator = _get_coordinator_from_service_data(call)
     torrent_id = call.data[CONF_ID]
     delete_data = call.data[ATTR_DELETE_DATA]
-    await call.hass.async_add_executor_job(
-        partial(coordinator.api.remove_torrent, torrent_id, delete_data=delete_data)
-    )
+    try:
+        await call.hass.async_add_executor_job(
+            partial(coordinator.api.remove_torrent, torrent_id, delete_data=delete_data)
+        )
+    except TransmissionError as err:
+        raise _service_error(err) from err
     await coordinator.async_request_refresh()
 
 

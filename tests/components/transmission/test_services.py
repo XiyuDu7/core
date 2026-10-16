@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from transmission_rpc import TransmissionError
 
 from homeassistant.components.transmission.const import (
     ATTR_DELETE_DATA,
@@ -22,7 +23,7 @@ from homeassistant.components.transmission.const import (
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_ID
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 from tests.common import MockConfigEntry
 
@@ -338,3 +339,74 @@ async def test_get_torrents_service(
         expected_torrents.remove(int(torrent_data["id"]))
 
     assert len(expected_torrents) == 0
+
+
+@pytest.mark.parametrize(
+    ("service", "payload", "client_method", "return_response"),
+    [
+        pytest.param(
+            SERVICE_ADD_TORRENT,
+            {ATTR_TORRENT: "magnet:?xt=urn:btih:test"},
+            "add_torrent",
+            False,
+            id="add_torrent",
+        ),
+        pytest.param(
+            SERVICE_GET_TORRENTS,
+            {ATTR_TORRENT_FILTER: "all"},
+            "get_torrents",
+            True,
+            id="get_torrents",
+        ),
+        pytest.param(
+            SERVICE_START_TORRENT,
+            {CONF_ID: 123},
+            "start_torrent",
+            False,
+            id="start_torrent",
+        ),
+        pytest.param(
+            SERVICE_STOP_TORRENT,
+            {CONF_ID: 123},
+            "stop_torrent",
+            False,
+            id="stop_torrent",
+        ),
+        pytest.param(
+            SERVICE_REMOVE_TORRENT,
+            {CONF_ID: 123},
+            "remove_torrent",
+            False,
+            id="remove_torrent",
+        ),
+    ],
+)
+async def test_service_transmission_error(
+    hass: HomeAssistant,
+    mock_transmission_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+    service: str,
+    payload: dict[str, str | int],
+    client_method: str,
+    return_response: bool,
+) -> None:
+    """Test a TransmissionError from the API is raised as HomeAssistantError."""
+    client = mock_transmission_client.return_value
+
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Set the failure after setup, since the coordinator also calls get_torrents.
+    getattr(client, client_method).side_effect = TransmissionError("Connection failed")
+
+    with pytest.raises(HomeAssistantError) as err:
+        await hass.services.async_call(
+            DOMAIN,
+            service,
+            {CONF_ENTRY_ID: mock_config_entry.entry_id, **payload},
+            blocking=True,
+            return_response=return_response,
+        )
+    assert err.value.translation_key == "service_error"
+    assert err.value.translation_placeholders == {"error": "Connection failed"}
