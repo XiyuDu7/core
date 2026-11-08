@@ -55,6 +55,11 @@
         }
       }
     },
+    "number": {
+      "download_speed_limit": {
+        "name": "Download speed limit"
+      }
+    },
     "sensor": {
       "active_torrents": {
         "name": "Active torrents",

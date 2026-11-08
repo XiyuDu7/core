@@ -43,7 +43,7 @@ from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.EVENT, Platform.SENSOR, Platform.SWITCH]
+PLATFORMS = [Platform.EVENT, Platform.NUMBER, Platform.SENSOR, Platform.SWITCH]
 
 MIGRATION_NAME_TO_KEY = {
     # Sensors

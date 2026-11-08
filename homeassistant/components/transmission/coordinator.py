@@ -247,3 +247,13 @@ class TransmissionDataUpdateCoordinator(DataUpdateCoordinator[SessionStats]):
         if self._session is None:
             return None
         return self._session.alt_speed_enabled
+
+    def set_download_speed_limit(self, limit: int) -> None:
+        """Set the download speed limit in kB/s."""
+        self.api.set_session(speed_limit_down=limit)
+
+    def get_download_speed_limit(self) -> int | None:
+        """Get the download speed limit in kB/s."""
+        if self._session is None:
+            return None
+        return self._session.speed_limit_down
