@@ -58,6 +58,12 @@
       }
     },
     "switch": {
+      "download_speed_limit_enabled": {
+        "default": "mdi:speedometer-slow",
+        "state": {
+          "off": "mdi:speedometer"
+        }
+      },
       "on_off": {
         "default": "mdi:cloud",
         "state": {

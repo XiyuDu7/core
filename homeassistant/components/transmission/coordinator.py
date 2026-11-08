@@ -257,3 +257,13 @@ class TransmissionDataUpdateCoordinator(DataUpdateCoordinator[SessionStats]):
         if self._session is None:
             return None
         return self._session.speed_limit_down
+
+    def set_download_speed_limit_enabled(self, is_enabled: bool) -> None:
+        """Set whether the download speed limit is enforced."""
+        self.api.set_session(speed_limit_down_enabled=is_enabled)
+
+    def get_download_speed_limit_enabled(self) -> bool | None:
+        """Get whether the download speed limit is enforced."""
+        if self._session is None:
+            return None
+        return self._session.speed_limit_down_enabled

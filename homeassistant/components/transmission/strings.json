@@ -119,6 +119,9 @@
       }
     },
     "switch": {
+      "download_speed_limit_enabled": {
+        "name": "Limit download speed"
+      },
       "on_off": {
         "name": "Switch"
       },

@@ -70,6 +70,7 @@ def mock_transmission_client() -> Generator[AsyncMock]:
             "alt-speed-enabled": False,
             "download-dir": "/downloads",
             "speed-limit-down": 100,
+            "speed-limit-down-enabled": False,
         }
         client.get_session.return_value = Session(fields=session_data)
 
