@@ -147,3 +147,54 @@ async def test_turtle_mode_switch(
     state = hass.states.get("switch.transmission_turtle_mode")
     assert state is not None
     assert state.state == expected_state
+
+
+@pytest.mark.parametrize(
+    ("service", "enabled", "expected_state"),
+    [
+        pytest.param(SERVICE_TURN_ON, True, "on", id="turn_on"),
+        pytest.param(SERVICE_TURN_OFF, False, "off", id="turn_off"),
+    ],
+)
+async def test_download_speed_limit_switch(
+    hass: HomeAssistant,
+    mock_transmission_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+    service: str,
+    enabled: bool,
+    expected_state: str,
+) -> None:
+    """Test the switch that enforces the download speed limit."""
+    client = mock_transmission_client.return_value
+
+    session_fields = {
+        "download-dir": "/downloads",
+        "speed-limit-down": 100,
+        "speed-limit-down-enabled": not enabled,
+    }
+
+    def set_session_side_effect(**kwargs: bool) -> None:
+        if "speed_limit_down_enabled" in kwargs:
+            session_fields["speed-limit-down-enabled"] = kwargs[
+                "speed_limit_down_enabled"
+            ]
+
+    client.set_session.side_effect = set_session_side_effect
+    client.get_session.side_effect = lambda: Session(fields=session_fields)
+
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    await hass.services.async_call(
+        SWITCH_DOMAIN,
+        service,
+        {ATTR_ENTITY_ID: "switch.transmission_limit_download_speed"},
+        blocking=True,
+    )
+
+    client.set_session.assert_called_once_with(speed_limit_down_enabled=enabled)
+
+    state = hass.states.get("switch.transmission_limit_download_speed")
+    assert state is not None
+    assert state.state == expected_state
