@@ -5,6 +5,11 @@
         "default": "mdi:folder-file-outline"
       }
     },
+    "number": {
+      "download_speed_limit": {
+        "default": "mdi:speedometer-slow"
+      }
+    },
     "sensor": {
       "active_torrents": {
         "default": "mdi:counter"
@@ -53,6 +58,12 @@
       }
     },
     "switch": {
+      "download_speed_limit_enabled": {
+        "default": "mdi:speedometer-slow",
+        "state": {
+          "off": "mdi:speedometer"
+        }
+      },
       "on_off": {
         "default": "mdi:cloud",
         "state": {

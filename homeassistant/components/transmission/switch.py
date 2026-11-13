@@ -6,6 +6,7 @@ from functools import partial
 from typing import Any, override
 
 from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -38,6 +39,16 @@ SWITCH_TYPES: tuple[TransmissionSwitchEntityDescription, ...] = (
         is_on_func=lambda coordinator: coordinator.get_alt_speed_enabled(),
         on_func=lambda coordinator: coordinator.set_alt_speed_enabled(True),
         off_func=lambda coordinator: coordinator.set_alt_speed_enabled(False),
+    ),
+    TransmissionSwitchEntityDescription(
+        key="download_speed_limit_enabled",
+        translation_key="download_speed_limit_enabled",
+        entity_category=EntityCategory.CONFIG,
+        is_on_func=lambda coordinator: coordinator.get_download_speed_limit_enabled(),
+        on_func=lambda coordinator: coordinator.set_download_speed_limit_enabled(True),
+        off_func=lambda coordinator: coordinator.set_download_speed_limit_enabled(
+            False
+        ),
     ),
 )
 
